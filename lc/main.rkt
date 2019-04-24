@@ -38,8 +38,8 @@
       [x
        (identifier? #'x)
        #`(force* #,id)]
-      [(a b)
-       #`(app (force* #,id) b)])))
+      [(a b ...)
+       #`(app (force* #,id) b ...)])))
 
 ;; this is buggy; need a test case!
 (define (force* x)

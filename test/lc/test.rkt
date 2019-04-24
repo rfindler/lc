@@ -53,3 +53,6 @@
 
 (check-equal? (try ((λ (x y z) y) p q r))
               "q\n")
+(check-equal? (try ((λ (f) (f p q r))
+                    (λ (p q r) q)))
+              "q\n")
