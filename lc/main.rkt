@@ -14,7 +14,8 @@
   [module-begin #%module-begin]
   [-λ λ]
   [app #%app]
-  [-= =]))
+  [-= =]
+  [-assert assert]))
 
 (define-syntax (app stx)
   (syntax-case stx ()
@@ -123,9 +124,13 @@
 (define-syntax (-= stx)
   (raise-syntax-error '= "illegal use of =" stx))
 
+(define-syntax (-assert stx)
+  (raise-syntax-error 'assert "illegal use of =" stx))
+
 (define-syntax (print-it stx)
   (syntax-parse stx
-    #:literals (-define -=)
+    #:literals (-define -= -assert)
+    #:datum-literals (¬ not)
     [(_ (-define . whatever))
      #'(-define/real . whatever)]
     [(_ (-= a b))
@@ -133,8 +138,30 @@
        #'(=/proc line-number a b))]
     [(_ (-= . whatever))
      (raise-syntax-error "malformed =" (stx-car (stx-cdr stx)))]
+    [(_ (-assert e))
+     (with-syntax ([line-number (syntax-line (stx-car (stx-cdr stx)))])
+       #'(assert/proc line-number #t e))]
+    [(_ (-assert ¬ e))
+     (with-syntax ([line-number (syntax-line (stx-car (stx-cdr stx)))])
+       #'(assert/proc line-number #f e))]
+    [(_ (-assert not e))
+     (with-syntax ([line-number (syntax-line (stx-car (stx-cdr stx)))])
+       #'(assert/proc line-number #f e))]
+    [(_ (-assert . whatever))
+     (raise-syntax-error "malformed assert" (stx-car (stx-cdr stx)))]
     [(_ e) #'(print-it/proc e)]))
 
+(define (assert/proc line-number true? a)
+  (define bool (get-boolean a))
+  (unless (boolean? bool)
+    (error 'assert "expected a boolean, got ~s" a))
+  (unless (equal? true? bool)
+    (printf "expected ~a~a but got ~a\n"
+            (if true? "true" "false")
+            (if line-number
+                (format " compared on line ~a" line-number)
+                "")
+            (if bool "true" "false"))))
 
 (define (=/proc line-number a b)
   (define na (get-number a))
