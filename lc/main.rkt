@@ -1,10 +1,11 @@
 #lang racket/base
 (module reader syntax/module-reader lc)
 
-(require (for-syntax racket/base)
+(require (for-syntax racket/base syntax/parse)
          racket/promise)
 (provide
  (rename-out
+  [-define define]
   [datum #%datum]
   [top-interaction #%top-interaction]
   [top #%top]
@@ -15,14 +16,20 @@
 (define-syntax (app stx)
   (syntax-case stx ()
     [(_ f x)
-     #'((check-proc f) (delay x))]))
+     #'((check-proc f) (delay x))]
+    [(_ f x y z ...)
+     #'(app (app f x) y z ...)]))
 
 (struct exn:fail:not-a-function exn:fail ())
 (define (check-proc f)
   (unless (procedure? f)
-    (raise (exn:fail:not-a-function
-            (format "expected a procedure, got ~e" f)
-            (current-continuation-marks))))
+    (if (symbol? f)
+        (raise (exn:fail:not-a-function
+                (format "do not know what function the free variable `~a` stands for" f)
+                (current-continuation-marks)))
+        (raise (exn:fail:not-a-function
+                (format "expected a procedure, got ~e" f)
+                (current-continuation-marks)))))
   f)
 
 (define-for-syntax (do-force id)
@@ -47,7 +54,8 @@
        (syntax/loc stx
          (λ (y)
            (let-syntax ([x (do-force #'y)])
-             e))))]))
+             e))))]
+    [(_ (x y z ...) e) #'(-λ (x) (-λ (y z ...) e))]))
 
 (define-syntax (datum stx)
   (syntax-case stx ()
@@ -60,7 +68,12 @@
   (syntax-case stx ()
     [(_ args ...)
      #'(#%plain-module-begin
-        (begin (print-it args)) ...)]))
+        (print-it args) ...)]))
+
+(define-syntax (-define stx)
+  (syntax-parse stx
+    [(_ x:id expr)
+     #'(define x expr)]))
 
 (define (get-number x)
   (let/ec k
@@ -100,7 +113,14 @@
          [else "nope!"])]
       [else "nope!"])))
 
-(define (print-it x)
+(define-syntax (print-it x)
+  (syntax-parse x
+    #:literals (-define)
+    [(_ (-define . whatever))
+     #'(-define . whatever)]
+    [(_ e) #'(print-it/proc e)]))
+
+(define (print-it/proc x)
   (define n (get-number x))
   (define b (get-boolean x))
   (when (number? n) (printf "church number: ~a\n" n))

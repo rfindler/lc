@@ -38,7 +38,18 @@
 
 (check-equal? (try (λ (f) (λ (x) (f (f (f (f x)))))))
               "church number: 4\n")
+(check-equal? (try (λ (f x) (f (f (f (f (f x)))))))
+              "church number: 5\n")
 (check-equal? (try (λ (x) (λ (y) x)))
+              "church boolean: #t\n")
+(check-equal? (try (λ (x y) x))
               "church boolean: #t\n")
 (check-equal? (try (λ (x) (λ (y) y)))
               "church number: 0\nchurch boolean: #f\n")
+
+(check-equal? (try (define id (λ (x) x))
+                   (id z))
+              "z\n")
+
+(check-equal? (try ((λ (x y z) y) p q r))
+              "q\n")
