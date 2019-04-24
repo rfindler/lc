@@ -13,7 +13,7 @@
   (parameterize ([current-output-port sp])
     (define modname
       (string->symbol (format "m~a" line-number)))
-    (eval `(,#'module ,modname lc ,@args)
+    (eval `(,#'module ,modname lc (#%module-begin ,@args))
           ns)
     (namespace-require `',modname ns))
   (get-output-string sp))
@@ -31,6 +31,7 @@
                      (λ (x) x))
                     z))
               "z\n")
+
 (check-equal? (try (((λ (f) (λ (x) (f (f x))))
                      (λ (x) x))
                     z))
@@ -56,3 +57,11 @@
 (check-equal? (try ((λ (f) (f p q r))
                     (λ (p q r) q)))
               "q\n")
+
+(check-equal? (try (= (λ (x) x)
+                      (λ (x) x)))
+              "")
+
+(check-equal? (try (= (λ (f x) (f x))
+                      (λ (f x) x)))
+              "the numbers are not equal, got 1 and 0\n")

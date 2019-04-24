@@ -1,7 +1,9 @@
 #lang racket/base
 (module reader syntax/module-reader lc)
 
-(require (for-syntax racket/base syntax/parse)
+(require (for-syntax racket/base
+                     syntax/stx
+                     syntax/parse)
          racket/promise)
 (provide
  (rename-out
@@ -11,7 +13,8 @@
   [top #%top]
   [module-begin #%module-begin]
   [-λ λ]
-  [app #%app]))
+  [app #%app]
+  [-= =]))
 
 (define-syntax (app stx)
   (syntax-case stx ()
@@ -66,11 +69,15 @@
 
 (define-syntax (module-begin stx)
   (syntax-case stx ()
-    [(_ args ...)
+    [(_ arg ...)
      #'(#%plain-module-begin
-        (print-it args) ...)]))
+        (print-it
+         arg) ...)]))
 
 (define-syntax (-define stx)
+  (raise-syntax-error 'define "illegal use of define" stx))
+
+(define-syntax (-define/real stx)
   (syntax-parse stx
     [(_ x:id expr)
      #'(define x expr)]))
@@ -113,12 +120,33 @@
          [else "nope!"])]
       [else "nope!"])))
 
-(define-syntax (print-it x)
-  (syntax-parse x
-    #:literals (-define)
+(define-syntax (-= stx)
+  (raise-syntax-error '= "illegal use of =" stx))
+
+(define-syntax (print-it stx)
+  (syntax-parse stx
+    #:literals (-define -=)
     [(_ (-define . whatever))
-     #'(-define . whatever)]
+     #'(-define/real . whatever)]
+    [(_ (-= a b))
+     (with-syntax ([line-number (syntax-line (stx-car (stx-cdr stx)))])
+       #'(=/proc line-number a b))]
+    [(_ (-= . whatever))
+     (raise-syntax-error "malformed =" (stx-car (stx-cdr stx)))]
     [(_ e) #'(print-it/proc e)]))
+
+
+(define (=/proc line-number a b)
+  (define na (get-number a))
+  (unless (number? na) (error '= "first argument is not a number ~s" a))
+  (define nb (get-number b))
+  (unless (number? nb) (error '= "second argument is not a number ~s" b))
+  (unless (= na nb)
+    (printf "the numbers~a are not equal, got ~a and ~a\n"
+            (if line-number
+                (format " compared on line ~a" line-number)
+                "")
+            na nb)))
 
 (define (print-it/proc x)
   (define n (get-number x))
