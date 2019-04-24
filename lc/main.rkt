@@ -62,18 +62,30 @@
     [(_ (x y z ...) e) #'(-λ (x) (-λ (y z ...) e))]))
 
 (define-syntax (datum stx)
-  (syntax-case stx ()
+  (syntax-parse stx
     [(_ . datum)
-     (raise-syntax-error
-      'lc
-      "no literals!" #'datum)]))
+     (define raw-datum (syntax-e #'datum))
+     (cond
+       [(exact-nonnegative-integer? raw-datum)
+        #'(to-church-numeral #,n)]
+       [(equal? raw-datum #false) #'(λ (x) (λ (y) y))]
+       [(equal? raw-datum #true) #'(λ (x) (λ (y) x))]
+       [else
+        (raise-syntax-error
+         'lc
+         "no literals (except natural numbers, #true, and #false)" #'datum)])]))
+
+(define (to-church-numeral n)
+  (λ (f)
+    (λ (x)
+      (for/fold ([x x])
+                ([i (in-range n)])
+        (f x)))))
 
 (define-syntax (module-begin stx)
   (syntax-case stx ()
     [(_ arg ...)
-     #'(#%plain-module-begin
-        (print-it
-         arg) ...)]))
+     #'(#%plain-module-begin (print-it arg) ...)]))
 
 (define-syntax (-define stx)
   (raise-syntax-error 'define "illegal use of define" stx))

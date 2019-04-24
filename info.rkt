@@ -1,4 +1,5 @@
 #lang info
 
 (define collection 'multi)
-(define scribblings (list (list "scribblings/lc/lc.scrbl")))
+(define deps '("base" "rackunit-lib"))
+(define build-deps '("racket-doc" "scribble-lib"))

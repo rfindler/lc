@@ -78,3 +78,6 @@
               "expected false but got true\n")
 (check-equal? (try (assert not (λ (x y) x)))
               "expected false but got true\n")
+
+(check-equal? (try 2 3 11)
+              "church number: 2\nchurch number: 3\nchurch number: 11\n")
