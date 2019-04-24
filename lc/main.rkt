@@ -67,7 +67,7 @@
      (define raw-datum (syntax-e #'datum))
      (cond
        [(exact-nonnegative-integer? raw-datum)
-        #'(to-church-numeral #,n)]
+        #`(to-church-numeral #,raw-datum)]
        [(equal? raw-datum #false) #'(λ (x) (λ (y) y))]
        [(equal? raw-datum #true) #'(λ (x) (λ (y) x))]
        [else
@@ -76,11 +76,11 @@
          "no literals (except natural numbers, #true, and #false)" #'datum)])]))
 
 (define (to-church-numeral n)
-  (λ (f)
-    (λ (x)
+  (-λ (f)
+    (-λ (x)
       (for/fold ([x x])
                 ([i (in-range n)])
-        (f x)))))
+        (app f x)))))
 
 (define-syntax (module-begin stx)
   (syntax-case stx ()
