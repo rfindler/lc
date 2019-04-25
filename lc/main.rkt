@@ -102,6 +102,16 @@
                (set! defined-names (cons #'x defined-names))]
               [_ (void)])
             #`(let () (maybe-print-it a #,(loop #'b)))])))
+     (define dup (check-duplicate-identifier defined-names))
+     (when dup
+       (define dups
+         (for/list ([d (in-list defined-names)]
+                    #:when (bound-identifier=? d dup))
+           d))
+       (raise-syntax-error (syntax-e dup) "duplicate definition"
+                           (car dups)
+                           #f
+                           (cdr dups)))
      #`(disallow-references #,defined-names #,body)]))
 
 (define-for-syntax ((raise-error a) stx)
