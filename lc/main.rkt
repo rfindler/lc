@@ -203,21 +203,21 @@
             (hash-set! repl-names-table 'x x)
             body)]
        [(-= a b)
-        (with-syntax ([line-number (syntax-line (stx-car (stx-cdr stx)))])
+        (with-syntax ([line-number (syntax-line #'expr)])
           #'(begin (=/proc line-number a b) body))]
        [(-= . whatever)
-        (raise-syntax-error "malformed =" (stx-car (stx-cdr stx)))]
+        (raise-syntax-error "malformed =" #'expr)]
        [(-assert e)
-        (with-syntax ([line-number (syntax-line (stx-car (stx-cdr stx)))])
+        (with-syntax ([line-number (syntax-line #'expr)])
           #'(begin (assert/proc line-number #t e) body))]
        [(-assert ¬ e)
-        (with-syntax ([line-number (syntax-line (stx-car (stx-cdr stx)))])
+        (with-syntax ([line-number (syntax-line #'expr)])
           #'(begin (assert/proc line-number #f e) body))]
        [(-assert not e)
-        (with-syntax ([line-number (syntax-line (stx-car (stx-cdr stx)))])
+        (with-syntax ([line-number (syntax-line #'expr)])
           #'(begin (assert/proc line-number #f e) body))]
        [(-assert . whatever)
-        (raise-syntax-error "malformed assert" (stx-car (stx-cdr stx)))]
+        (raise-syntax-error "malformed assert" #'expr)]
        [e #'(begin (print-it/proc e) body)])]))
 
 (define (assert/proc line-number true? a)
