@@ -55,7 +55,7 @@
          (λ (y)
            (let-syntax ([x (do-force #'y)])
              e))))]
-    [(_ (x y z ...) e) #'(-λ (x) (-λ (y z ...) e))]))
+    [(_ (x y z ...) e) (syntax/loc stx (-λ (x) (-λ (y z ...) e)))]))
 
 (define-syntax (datum stx)
   (syntax-parse stx
