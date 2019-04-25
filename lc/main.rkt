@@ -232,9 +232,11 @@
 
 (define (=/proc line-number a b)
   (define na (get-number a))
-  (unless (number? na) (error '= "first argument is not a number ~s" a))
+  (unless (number? na) (error '= "first argument is not a number ~s"
+                              (force* a)))
   (define nb (get-number b))
-  (unless (number? nb) (error '= "second argument is not a number ~s" b))
+  (unless (number? nb) (error '= "second argument is not a number ~s"
+                              (force* b)))
   (unless (= na nb)
     (printf "the numbers~a are not equal, got ~a and ~a\n"
             (if line-number
@@ -248,7 +250,7 @@
   (when (number? n) (printf "church number: ~a\n" n))
   (when (boolean? b) (printf "church boolean: ~a\n" b))
   (unless (or (number? n) (boolean? b))
-    (printf "~s\n" x)))
+    (printf "~s\n" (force* x))))
 
 (define-syntax (top stx)
   (syntax-case stx ()
