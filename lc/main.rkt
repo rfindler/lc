@@ -101,7 +101,7 @@
               [(-define x e)
                (set! defined-names (cons #'x defined-names))]
               [_ (void)])
-            #`(let () (maybe-print-it a #,(loop #'b)))])))
+            #`(maybe-print-it repl-names-table a #,(loop #'b))])))
      (define dup (check-duplicate-identifier defined-names))
      (when dup
        (define dups
@@ -112,11 +112,17 @@
                            (car dups)
                            #f
                            (cdr dups)))
-     #`(disallow-references #,defined-names #,body)]))
+     (with-syntax ([(defined-names ...) defined-names])
+       #`(begin
+           (define repl-names-table (make-hash))
+           (disallow-references (defined-names ...) #,body)
+           (define defined-names (hash-ref repl-names-table 'defined-names)) ...
+           ))]))
 
 (define-for-syntax ((raise-error a) stx)
   (define sym (syntax-e a))
   (syntax-parse stx
+    #:literals (set!)
     [x
      (identifier? #'x)
      (raise-syntax-error
@@ -138,11 +144,6 @@
 
 (define-syntax (-define stx)
   (raise-syntax-error 'define "illegal use of define" stx))
-
-(define-syntax (-define/real stx)
-  (syntax-parse stx
-    [(_ x:id expr)
-     #'(define x expr)]))
 
 (define (get-number x)
   (let/ec k
@@ -193,27 +194,31 @@
 
 (define-syntax (maybe-print-it stx)
   (syntax-parse stx
-    #:literals (-define -= -assert)
-    #:datum-literals (¬ not)
-    [(_ (-define x:id rhs) body)
-     #'(let ([x rhs]) body)]
-    [(_ (-= a b) body)
-     (with-syntax ([line-number (syntax-line (stx-car (stx-cdr stx)))])
-       #'(begin (=/proc line-number a b) body))]
-    [(_ (-= . whatever) body)
-     (raise-syntax-error "malformed =" (stx-car (stx-cdr stx)))]
-    [(_ (-assert e) body)
-     (with-syntax ([line-number (syntax-line (stx-car (stx-cdr stx)))])
-       #'(begin (assert/proc line-number #t e) body))]
-    [(_ (-assert ¬ e) body)
-     (with-syntax ([line-number (syntax-line (stx-car (stx-cdr stx)))])
-       #'(begin (assert/proc line-number #f e) body))]
-    [(_ (-assert not e) body)
-     (with-syntax ([line-number (syntax-line (stx-car (stx-cdr stx)))])
-       #'(begin (assert/proc line-number #f e) body))]
-    [(_ (-assert . whatever) body)
-     (raise-syntax-error "malformed assert" (stx-car (stx-cdr stx)))]
-    [(_ e body) #'(begin (print-it/proc e) body)]))
+    [(_ repl-names-table expr body)
+     (syntax-parse #'expr
+       #:literals (-define -= -assert)
+       #:datum-literals (¬ not)
+       [(-define x:id rhs)
+        #'(let ([x rhs])
+            (hash-set! repl-names-table 'x x)
+            body)]
+       [(-= a b)
+        (with-syntax ([line-number (syntax-line (stx-car (stx-cdr stx)))])
+          #'(begin (=/proc line-number a b) body))]
+       [(-= . whatever)
+        (raise-syntax-error "malformed =" (stx-car (stx-cdr stx)))]
+       [(-assert e)
+        (with-syntax ([line-number (syntax-line (stx-car (stx-cdr stx)))])
+          #'(begin (assert/proc line-number #t e) body))]
+       [(-assert ¬ e)
+        (with-syntax ([line-number (syntax-line (stx-car (stx-cdr stx)))])
+          #'(begin (assert/proc line-number #f e) body))]
+       [(-assert not e)
+        (with-syntax ([line-number (syntax-line (stx-car (stx-cdr stx)))])
+          #'(begin (assert/proc line-number #f e) body))]
+       [(-assert . whatever)
+        (raise-syntax-error "malformed assert" (stx-car (stx-cdr stx)))]
+       [e #'(begin (print-it/proc e) body)])]))
 
 (define (assert/proc line-number true? a)
   (define bool (get-boolean a))
@@ -252,5 +257,14 @@
     [(_ . x) #''x]))
 
 (define-syntax (top-interaction stx)
-  (syntax-case stx ()
-    [(_ . x) #'(maybe-print-it x)]))
+  (syntax-parse stx
+    #:literals (-define)
+    [(_ . (-define . whatever))
+     (raise-syntax-error 'define "not allowed at the top-level"
+                         (stx-cdr stx))]
+    [(_ . x)
+     #'(maybe-print-it
+        ;; we shouldn't use this because of the
+        ;; previous case in the syntax-parse
+        dont-use-me
+        x (void))]))
