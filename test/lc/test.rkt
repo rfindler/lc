@@ -51,6 +51,10 @@
 (check-equal? (try (define id (λ (x) x))
                    (id z))
               "z\n")
+(check-equal? (try (define id (λ (x) x))
+                   (define id2 (λ (y) (id y)))
+                   (id2 z))
+              "z\n")
 
 (check-equal? (try ((λ (x y z) y) p q r))
               "q\n")
