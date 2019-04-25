@@ -10,7 +10,7 @@ and some support for testing.
 
 Expressions at the top-level of the language print their
 results, either as the free variable that they reduce to or,
-if the lambda term is a church-encoded number or boolean,
+if the lambda term is a Church-encoded number or boolean,
 the corresponding natural number or boolean is printed.
 
 The only constants allowed are natural numbers, @racket[#true], and
@@ -38,7 +38,7 @@ The only constants allowed are natural numbers, @racket[#true], and
 
 @defform[(define id expr)]{
  Introduces a shorthand for @racket[id], binding it to the
- λ-term @racket[expr]
+ λ-term @racket[expr].
 }
 
 @defform[(= expr expr)]{
@@ -51,7 +51,7 @@ The only constants allowed are natural numbers, @racket[#true], and
 @defform*[[(assert expr)
            (assert ¬ expr)
            (assert not expr)]]{
- Checks to see if @racket[expr] is a church-encoded boolean.
+ Checks to see if @racket[expr] is a Church-encoded boolean.
 
  In the first case, makes sure it is true and the second and third cases,
  makes sure it is false.
