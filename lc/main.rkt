@@ -45,11 +45,7 @@
       [(a b ...)
        #`(app (force* #,id) b ...)])))
 
-;; this is buggy; need a test case!
-(define (force* x)
-  (force x)
-  #;
-  (if (promise? x) (force* (force x)) x))
+(define (force* x) (if (promise? x) (force* (force x)) x))
 
 (define-syntax (-λ stx)
   (syntax-case stx ()
@@ -145,7 +141,8 @@
 (define-syntax (-define stx)
   (raise-syntax-error 'define "illegal use of define" stx))
 
-(define (get-number x)
+(define (get-number _x)
+  (define x (force* _x))
   (let/ec k
     (with-handlers ([exn:fail:not-a-function? (λ (x) #f)])
       (cond
@@ -166,7 +163,8 @@
       (+ n 1)
       (k #f)))
 
-(define (get-boolean x)
+(define (get-boolean _x)
+  (define x (force* _x))
   (with-handlers ([exn:fail:not-a-function? (λ (x) "nope!")])
     (cond
       [(procedure? x)

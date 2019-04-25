@@ -85,3 +85,9 @@
 
 (check-equal? (try 2 3 11)
               "church number: 2\nchurch number: 3\nchurch number: 11\n")
+
+(check-equal?
+ (try
+  (define Y (λ (f) ((λ (x) (f (x x))) (λ (x) (f (x x))))))
+  ((Y (λ (f) (λ (x) (x (f #false) 1)))) #true))
+ "church number: 1\n")
