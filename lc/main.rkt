@@ -98,7 +98,7 @@
            [(a . b)
             (syntax-parse #'a
               #:literals (-define)
-              [(-define x e)
+              [(-define x:id e)
                (set! defined-names (cons #'x defined-names))]
               [_ (void)])
             #`(maybe-print-it repl-names-table a #,(loop #'b))])))
