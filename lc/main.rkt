@@ -20,7 +20,7 @@
 (define-syntax (app stx)
   (syntax-case stx ()
     [(_ f x)
-     #'((check-proc f) (delay x))]
+     #'((check-proc (force* f)) (delay x))]
     [(_ f x y z ...)
      #'(app (app f x) y z ...)]))
 

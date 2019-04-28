@@ -91,3 +91,11 @@
   (define Y (λ (f) ((λ (x) (f (x x))) (λ (x) (f (x x))))))
   ((Y (λ (f) (λ (x) (x (f #false) 1)))) #true))
  "church number: 1\n")
+
+(check-equal?
+ (try (((λ (b tt ff) (b tt ff)) (λ (a) (λ (b) b)) (λ (x) x) (λ (x) x)) 42))
+ "church number: 42\n")
+
+(check-equal?
+ (try (((λ (b tt ff) (b tt ff)) #f (λ (x) x) (λ (x) x)) 42))
+ "church number: 42\n")
