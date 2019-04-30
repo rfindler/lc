@@ -20,9 +20,11 @@
 (define-syntax (app stx)
   (syntax-case stx ()
     [(_ f x)
-     #'((check-proc (force* f)) (delay x))]
+     (quasisyntax/loc stx
+       ((check-proc (force* f)) (delay x)))]
     [(_ f x y z ...)
-     #'(app (app f x) y z ...)]))
+     (quasisyntax/loc stx
+       (app #,(syntax/loc stx (app f x)) y z ...))]))
 
 (struct exn:fail:not-a-function exn:fail ())
 (define (check-proc f)
@@ -41,9 +43,10 @@
     (syntax-case stx ()
       [x
        (identifier? #'x)
-       #`(force* #,id)]
+       (quasisyntax/loc stx (force* #,id))]
       [(a b ...)
-       #`(app (force* #,id) b ...)])))
+       (quasisyntax/loc stx
+         (app (force* #,id) b ...))])))
 
 (define (force* x) (if (promise? x) (force* (force x)) x))
 
@@ -55,7 +58,9 @@
          (λ (y)
            (let-syntax ([x (do-force #'y)])
              e))))]
-    [(_ (x y z ...) e) (syntax/loc stx (-λ (x) (-λ (y z ...) e)))]))
+    [(_ (x y z ...) e)
+     (quasisyntax/loc stx
+       (-λ (x) #,(syntax/loc #'y (-λ (y z ...) e))))]))
 
 (define-syntax (datum stx)
   (syntax-parse stx
@@ -190,6 +195,13 @@
 (require racket/stxparam)
 (define-syntax-parameter line-of-define #f)
 
+(define-syntax make-check
+  (syntax-parser
+    [(_ #:src expr builtin-predicate:id args ...+)
+     (with-syntax ([line-number (syntax-line #'expr)])
+       (syntax/loc #'expr
+         (builtin-predicate line-number args ...)))]))
+
 (define-syntax (maybe-print-it stx)
   (syntax-parse stx
     [(_ repl-names-table expr body)
@@ -201,22 +213,18 @@
             (hash-set! repl-names-table 'x x)
             body)]
        [(-= a b)
-        (with-syntax ([line-number (syntax-line #'expr)])
-          #'(begin (=/proc line-number a b) body))]
+        #'(begin (make-check #:src expr =/proc a b) body)]
        [(-= . whatever)
         (raise-syntax-error "malformed =" #'expr)]
        [(-assert e)
-        (with-syntax ([line-number (syntax-line #'expr)])
-          #'(begin (assert/proc line-number #t e) body))]
+        #'(begin (make-check #:src expr assert/proc #t e) body)]
        [(-assert ¬ e)
-        (with-syntax ([line-number (syntax-line #'expr)])
-          #'(begin (assert/proc line-number #f e) body))]
+        #'(begin (make-check #:src expr assert/proc #f e) body)]
        [(-assert not e)
-        (with-syntax ([line-number (syntax-line #'expr)])
-          #'(begin (assert/proc line-number #f e) body))]
+        #'(begin (make-check #:src expr assert/proc #f e) body)]
        [(-assert . whatever)
         (raise-syntax-error "malformed assert" #'expr)]
-       [e #'(begin (print-it/proc e) body)])]))
+       [e #`(begin #,(syntax/loc #'e (print-it/proc e)) body)])]))
 
 (define (assert/proc line-number true? a)
   (define bool (get-boolean a))
