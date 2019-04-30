@@ -69,8 +69,14 @@
      (cond
        [(exact-nonnegative-integer? raw-datum)
         #`(to-church-numeral #,raw-datum)]
-       [(equal? raw-datum #false) #'(λ (x) (λ (y) y))]
-       [(equal? raw-datum #true) #'(λ (x) (λ (y) x))]
+       [(equal? raw-datum #false)
+        #'(-λ (x)
+            (let ([false/partially-applied (-λ (y) y)])
+              false/partially-applied))]
+       [(equal? raw-datum #true)
+        #'(-λ (x)
+            (let ([true/partially-applied (-λ (y) x)])
+              true/partially-applied))]
        [else
         (raise-syntax-error
          'lc
@@ -78,10 +84,12 @@
 
 (define (to-church-numeral n)
   (-λ (f)
-    (-λ (x)
-      (for/fold ([x x])
-                ([i (in-range n)])
-        (app f x)))))
+    (procedure-rename
+     (-λ (x)
+         (for/fold ([x x])
+                   ([i (in-range n)])
+           (app f x)))
+     (string->symbol (format "church-numeral:~a/partially-applied" n)))))
 
 (define-syntax (module-begin stx)
   (syntax-case stx ()
